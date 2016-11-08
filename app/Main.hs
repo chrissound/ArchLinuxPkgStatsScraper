@@ -4,68 +4,69 @@ module Main where
 
 import Lib
 
-import Data.Maybe (listToMaybe)
-import Data.Text (Text, unpack, pack)
-import Data.String.Utils (rstrip)
 import Text.XML
 import Text.XML.Cursor
 import Data.Char (isPrint, isSpace)
 import qualified Text.XML.Cursor.Generic
+import Data.Text (unpack, pack, Text)
+import Safe (headMay)
 
-import Control.Monad.Trans.List
-import Control.Monad
-import Control.Monad.Trans.Class
-
-applyLeftRight :: String -> [a] -> Either String [a]
-applyLeftRight errorString x = if (length x) == 0 then Left errorString else Right x
-
-failIfEmpty :: a -> [b] -> Either a [b]
+failIfEmpty :: error -> [b] -> Either error [b]
 failIfEmpty reason [] = Left reason
 failIfEmpty _      xs = Right xs
 
-parseDoc :: Document -> Either ([Cursor], String) [Cursor]
-parseDoc doc = do
-    root <- failIfEmpty ([], "no document") $ [fromDocument doc]
-    body <- failIfEmpty (root, "no body!") $ root >>= ($/ element "body")
-    divs <- failIfEmpty (body, "no divs!") $ body >>= ($/ element "div")
-    contents <- failIfEmpty (divs, "no contents!") $ divs >>= attributeIs "id" "content"
-    pure contents
+--extract :: t -> (a -> [b]) -> [a] -> Either ([a], t) [b]
+--extract :: errorString -> ([a] -> [b]) -> Either ([b], ) [b]
+--tract es f x = failIfEmpty (x, es) $ x >>= f
+extract es f x = failIfEmpty (x, es) $ x >>= f
+
+type Bob = Document -> Either ([Cursor], String) [Cursor]
+
+parseDoc :: Bob
+parseDoc doc = failIfEmpty ([], "No root") [fromDocument doc]
+    >>= extract "1" (($/ element "body"))
+    >>= extract "2" (($/ element "div"))
+    >>= extract "3" (attributeIs "id" "content")
+    >>= extract "5" (($/ element "div"))
+    >>= extract "6" (($/ element "table"))
+    >>= extract "9" (($/ element "tbody"))
+    >>= extract "10" (($/ element "tr"))
+    >>= extract "10" (($/ element "th"))
+
+contentIs :: String -> Cursor -> [Cursor]
+contentIs text cursor = case cursorContentIs text cursor of
+  False -> []
+  True -> [cursor]
+
+cursorContentIs :: String -> Cursor -> Bool
+cursorContentIs text cursor = case getContent $ node cursor of
+  Just x -> unpack x == text
+  Nothing -> False
+
+getContent :: Node -> (Maybe Text)
+getContent (NodeElement e) = headMay ( map (\(NodeContent t) -> t) $ elementNodes e)
+
+
+parseDoc2 :: Bob
+parseDoc2 doc = failIfEmpty ([], "No root") [fromDocument doc]
+    >>= extract "1" ($/ element "body")
+    >>= extract "2" ($/ element "div")
+    >>= extract "3" (attributeIs "class" "content")
+    >>= extract "4" ($/ element "h1")
+    >>= extract "5" (contentIs "bob")
 
 
 main :: IO ()
 main = do
-    --doc <- makeRequest "https://www.archlinux.de/?page=PackageStatistics"
     doc <- getDocumentFile "archlinux.html"
+    doc2 <- getDocumentFile "bob.html"
     --let contents = do
-    let test2 = parseDoc doc
+    let test2 = parseDoc2 doc2
     case test2 of
       Left (x, errorString) -> do
         printCursor x
+        mapM print x
         print  $ "failure:" ++ errorString
       Right x -> do
         printCursor x
         print "success"
-
-    -- runListT $ (ListT (Just [1,2,3]) >>=(\x -> ListT $ return [x+1]))
-    -- Just [2,3,4]
---     let test2 = runListT $
---                 (   ListT ((applyLeftRight "First " [1,2,3]))
---                  >>= (\_ -> ListT $ Right [])
---                  ) :: Either String [Int]
---     let test2 = runListT $
---                 (
---                     (ListT (
---                         applyLeftRight "First" (fromDocument (doc :: Document) $/ element "body")
---                     ))
---                     >>= (\_ -> (ListT (Left "abcxyz")))
---                 ) :: Either String [Cursor]
---    let test2 = runListT $
---                (
---                    (ListT $ applyLeftRight "First" (fromDocument (doc :: Document) $/ element "body"))
---                    >>= (\x -> (ListT $ applyLeftRight "Second" (x $/ element "div")))
---                    >>= (\x -> (ListT $ applyLeftRight "Third" (attributeIs "id" "content")))
---                ) :: Either String [Cursor]
-
---             >>= applyLeftRight "Third" (attributeIs "id" "content")
---             >>= applyLeftRight "Fourth" ($/ element "div")
---             >>= applyLeftRight "Fifth" (attributeIs "class" "box")

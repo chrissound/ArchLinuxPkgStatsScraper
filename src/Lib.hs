@@ -15,6 +15,14 @@ import Text.XML.Cursor
 import Data.Char (isPrint, isSpace)
 import qualified Text.XML.Cursor.Generic
 
+--    failIfEmpty ([], "No root") [fromDocument doc]
+
+-- parseDoc doc = failIfEmpty ([], "no document") $ [fromDocument doc]
+--     >>= (\x -> failIfEmpty (x, "no body!") $ x >>= ($/ element "body"))
+--     >>= (\x -> failIfEmpty (x, "no divs!") $ x >>= ($/ element "div"))
+--     >>= (\x -> failIfEmpty (x, "no contents!") $ x >>= attributeIs "id" "content")
+--     >>= pure
+
 getDocumentFile :: FilePath -> IO Document
 getDocumentFile path = do
   THX.readFile path
@@ -57,7 +65,6 @@ printBasicNodeElements (NodeElement element) = unlines
     "element: " ++ (unpack $ nameLocalName $ elementName element)
     , "    attributes: " ++ (show $ elementAttributes element)
   ]
-
 printBasicNodeElements (NodeContent content) = "element content: " ++ contentString where
   contentString = show contentStripped
   contentStripped = filter (not . isSpace) $ unpack content

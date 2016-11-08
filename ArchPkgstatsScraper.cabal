@@ -41,6 +41,7 @@ executable ArchPkgstatsScraper
                        , xml-conduit
                        , resourcet
                        , transformers
+                       , safe
   default-language:    Haskell2010
 
 test-suite ArchPkgstatsScraper-test
