@@ -7,9 +7,11 @@ import Lib
 import Text.XML
 import Text.XML.Cursor
 import Data.Char (isPrint, isSpace)
+import Data.Maybe (mapMaybe)
 import qualified Text.XML.Cursor.Generic
 import Data.Text (unpack, pack, Text)
 import Safe (headMay)
+import Data.List.Split (chunksOf)
 
 failIfEmpty :: error -> [b] -> Either error [b]
 failIfEmpty reason [] = Left reason
@@ -23,7 +25,7 @@ extract es f x = failIfEmpty (x, es) $ x >>= f
 type Bob = Document -> Either ([Cursor], String) [Cursor]
 
 parseDoc :: Bob
-parseDoc doc = failIfEmpty ([], "No root") [fromDocument doc]
+parseDoc doc = Right [fromDocument doc]
     >>= extract "1" (($/ element "body"))
     >>= extract "2" (($/ element "div"))
     >>= extract "3" (attributeIs "id" "content")
@@ -31,7 +33,15 @@ parseDoc doc = failIfEmpty ([], "No root") [fromDocument doc]
     >>= extract "6" (($/ element "table"))
     >>= extract "9" (($/ element "tbody"))
     >>= extract "10" (($/ element "tr"))
-    >>= extract "10" (($/ element "th"))
+    >>= extract "11b" ($/ element "th")
+    >>= extract "11" (contentIs "core")
+    >>= extract "12" (parent)
+    >>= extract "13" ($/ element "td")
+    >>= extract "14" ($/ element "div")
+    >>= extract "15" ($/ element "table")
+    >>= extract "16" ($/ element "tbody")
+    >>= extract "16" ($/ element "tr")
+    >>= extract "16" ($/ element "td")
 
 contentIs :: String -> Cursor -> [Cursor]
 contentIs text cursor = case cursorContentIs text cursor of
@@ -44,8 +54,9 @@ cursorContentIs text cursor = case getContent $ node cursor of
   Nothing -> False
 
 getContent :: Node -> (Maybe Text)
-getContent (NodeElement e) = headMay ( map (\(NodeContent t) -> t) $ elementNodes e)
-
+getContent (NodeElement e) = headMay $ mapMaybe getContent $ elementNodes e
+getContent (NodeContent c) = Just c
+getContent _ = Just "???"
 
 parseDoc2 :: Bob
 parseDoc2 doc = failIfEmpty ([], "No root") [fromDocument doc]
@@ -54,11 +65,13 @@ parseDoc2 doc = failIfEmpty ([], "No root") [fromDocument doc]
     >>= extract "3" (attributeIs "class" "content")
     >>= extract "4" ($/ element "h1")
     >>= extract "5" (contentIs "bob")
+    >>= extract "6" (parent)
+    >>= extract "7" ($/ element "p")
 
 
 main :: IO ()
 main = do
-    doc <- getDocumentFile "archlinux.html"
+    doc <- getDocumentFile "tmp/archlinux.html"
     doc2 <- getDocumentFile "bob.html"
     --let contents = do
     let test2 = parseDoc2 doc2
@@ -70,3 +83,15 @@ main = do
       Right x -> do
         printCursor x
         print "success"
+    let test2 = parseDoc doc
+    case test2 of
+      Left (x, errorString) -> do
+        -- printCursor x
+        -- mapM print x
+        print  $ "failure:" ++ errorString
+      Right x -> do
+        printCursor x
+        print $ map getListOfPackages $ chunksOf 2 x
+        print "success"
+
+getListOfPackages (cursor:cursorb:[]) = getContent $ node $ cursor
