@@ -74,15 +74,15 @@ main = do
     doc <- getDocumentFile "tmp/archlinux.html"
     doc2 <- getDocumentFile "bob.html"
     --let contents = do
-    let test2 = parseDoc2 doc2
-    case test2 of
-      Left (x, errorString) -> do
-        printCursor x
-        mapM print x
-        print  $ "failure:" ++ errorString
-      Right x -> do
-        printCursor x
-        print "success"
+    -- let test2 = parseDoc2 doc2
+    -- case test2 of
+    --   Left (x, errorString) -> do
+    --     printCursor x
+    --     mapM print x
+    --     print  $ "failure:" ++ errorString
+    --   Right x -> do
+    --     printCursor x
+    --     print "success"
     let test2 = parseDoc doc
     case test2 of
       Left (x, errorString) -> do
@@ -90,8 +90,28 @@ main = do
         -- mapM print x
         print  $ "failure:" ++ errorString
       Right x -> do
-        printCursor x
-        print $ map getListOfPackages $ chunksOf 2 x
+        -- print $ map getListOfPackages $ take 1 $ chunksOf 2 x
+        mapM getListOfPackages $ chunksOf 2 x
         print "success"
 
-getListOfPackages (cursor:cursorb:[]) = getContent $ node $ cursor
+getPercentageFromPackageCursor :: Cursor -> Either ([Cursor], String) [Cursor]
+getPercentageFromPackageCursor cursor = Right [cursor]
+  >>= extract "1" ($/ element "table")
+  >>= extract "2" ($/ element "tbody")
+  >>= extract "3" ($/ element "tr")
+  >>= extract "4" ($/ element "td")
+  >>= extract "5" (followingSibling)
+  >>= extract "7" (followingSibling)
+
+getListOfPackages :: [Cursor] -> IO ()
+getListOfPackages (cursor:cursorb:[]) = case (getContent $ node $ cursor) of
+  Just x -> case getPercentageFromPackageCursor cursorb of
+      Left ([c], e) -> do
+        print $ "Cursor b failed: " ++ e
+        print c
+      Right y -> do
+        let content = getContent.node $ head y
+        case content of
+          Just z -> print $ Just (x, filterString . unpack $ z)
+          n -> print n
+  n -> print n

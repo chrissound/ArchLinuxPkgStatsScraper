@@ -52,9 +52,10 @@ printBasicNode nodePrint@(NodeElement element) = mainNode ++ "Chlidren: \n" ++ c
   children = concatMap unlines [
       map (formatChildString . printBasicNodeElements) (elementNodes element)
     ]
+printBasicNode (NodeContent content) = prefixString "Content:" $ show . filterString $ unpack content
 
 formatChildString :: String -> String
-formatChildString string = rstrip $ unlines $ map (prefixString "    ")  $ lines string
+formatChildString string = rstrip . unlines . map (prefixString "    ")  $ lines string
 
 prefixString :: String -> String -> String
 prefixString prefix string = prefix ++ string
@@ -62,12 +63,12 @@ prefixString prefix string = prefix ++ string
 printBasicNodeElements :: Node -> String
 printBasicNodeElements (NodeElement element) = unlines
   [
-    "element: " ++ (unpack $ nameLocalName $ elementName element)
-    , "    attributes: " ++ (show $ elementAttributes element)
+    "element: " ++ (unpack . nameLocalName $ elementName element)
+    , prefixString "    " "attributes: " ++ (show $ elementAttributes element)
   ]
-printBasicNodeElements (NodeContent content) = "element content: " ++ contentString where
-  contentString = show contentStripped
-  contentStripped = filter (not . isSpace) $ unpack content
-printBasicNodeElements (NodeComment comment) = "element comment: " ++ commentString where
-  commentString = show comment
+printBasicNodeElements (NodeContent content) = "element content: " ++ (show . filterString . unpack $ content)
+printBasicNodeElements (NodeComment comment) = "element comment: " ++ show comment
 printBasicNodeElements  a = "element ???:" ++ show a
+
+filterString :: String -> String
+filterString = filter (not . isSpace)
