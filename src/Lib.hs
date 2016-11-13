@@ -6,7 +6,6 @@ import Data.Conduit (($$+-))
 import Network.HTTP.Conduit (tlsManagerSettings, http, newManager, parseUrlThrow, responseBody)
 import qualified Text.HTML.DOM as THX (readFile, sinkDoc)
 import Text.XML as TX (Document)
-
 import Data.Text (Text, unpack, filter)
 import Data.List (filter)
 import Data.String.Utils (rstrip)

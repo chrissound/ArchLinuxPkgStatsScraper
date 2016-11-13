@@ -5,10 +5,12 @@ module Main where
 import Lib
 import Arch
 
-import Text.XML
+import Text.XML (Document)
 import Text.XML.Cursor
 import Data.Either (rights)
 import Data.List.Split (chunksOf)
+import Data.Aeson
+import Data.String.Conv (toS)
 
 
 type Bob = Document -> Either ([Cursor], String) [Cursor]
@@ -53,8 +55,10 @@ main = do
         print  $ "failure:" ++ errorString
       Right x -> do
         -- print $ map getListOfPackages $ take 1 $ chunksOf 2 x
-        print $ rights $ map (getListOfPackages . listToTuple) $ chunksOf 2 x
-        print ("success" :: [Char])
+        let packages = rights $ map (getListOfPackages . listToTuple) $ chunksOf 2 x
+        --print $ packages
+        writeFile "abc.json" (toS $ encode packages)
+        print ("Success" :: String)
 
 listToTuple :: [a] -> (a, a)
 listToTuple (a:a':[]) = (a, a')
