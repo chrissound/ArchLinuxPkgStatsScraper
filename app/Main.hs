@@ -104,14 +104,16 @@ getPercentageFromPackageCursor cursor = Right [cursor]
 getListOfPackages :: [Cursor] -> Either ([Cursor], [Maybe Text]) (Text, Text)
 getListOfPackages cursorList@(cursor:cursorb:[]) = do
   let packageName = getContent $ node $ cursor
-  let percentage = case getPercentageFromPackageCursor cursorb of
-        Right y -> case getContent.node $ head y of
-                        Just z -> Just $ filterText z
-                        Nothing -> Nothing
-        Left _ -> Nothing
+  let percentage =
+        case getPercentageFromPackageCursor cursorb of
+          Right y ->
+            case getContent . node $ head y of
+              Just z -> Just $ filterText z
+              Nothing -> Nothing
+          Left _ -> Nothing
   let justValues = [packageName, percentage]
       left = Left (cursorList, justValues)
-      justValuesLength = length justValues in
-    case (length $ filter isJust justValues) of
-            justValuesLength -> Right (fromJust packageName, fromJust percentage)
-            _ -> left
+      justValuesLength = length justValues
+  in case (length $ filter isJust justValues) of
+       justValuesLength -> Right (fromJust packageName, fromJust percentage)
+       _ -> left
