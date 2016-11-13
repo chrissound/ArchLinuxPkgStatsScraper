@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Lib where
 
 import Control.Monad.Trans.Resource (runResourceT)
@@ -10,9 +11,11 @@ import Data.Text (Text, unpack, filter)
 import Data.List (filter)
 import Data.String.Utils (rstrip)
 import Text.XML
-import Text.XML.Cursor (node)
+import Text.XML.Cursor (node, Cursor)
 import Data.Char (isSpace)
 import qualified Text.XML.Cursor.Generic as XMLG
+import Safe (headMay)
+import Data.Maybe (mapMaybe)
 
 --    failIfEmpty ([], "No root") [fromDocument doc]
 
@@ -76,3 +79,25 @@ filterString = Data.List.filter (not . isSpace)
 
 filterText :: Text -> Text
 filterText = Data.Text.filter (not . isSpace)
+
+contentIs :: String -> Cursor -> [Cursor]
+contentIs text cursor = case cursorContentIs text cursor of
+  False -> []
+  True -> [cursor]
+
+cursorContentIs :: String -> Cursor -> Bool
+cursorContentIs text cursor = case getContent $ node cursor of
+  Just x -> unpack x == text
+  Nothing -> False
+
+getContent :: Node -> (Maybe Text)
+getContent (NodeElement e) = headMay $ mapMaybe getContent $ elementNodes e
+getContent (NodeContent c) = Just c
+getContent _ = Just "???"
+
+failIfEmpty :: error -> [b] -> Either error [b]
+failIfEmpty reason [] = Left reason
+failIfEmpty _      xs = Right xs
+
+extract :: t -> (a -> [b]) -> [a] -> Either ([a], t) [b]
+extract es f x = failIfEmpty (x, es) $ x >>= f
