@@ -5,15 +5,14 @@ import Data.Conduit (($$+-))
 import Network.HTTP.Conduit (tlsManagerSettings, http, newManager, parseUrlThrow, responseBody)
 import qualified Text.HTML.DOM as THX (readFile, sinkDoc)
 import Text.XML as TX (Document)
-import Data.Default
 
-import Data.Maybe (listToMaybe)
-import Data.Text (Text, unpack, pack)
+import Data.Text (Text, unpack, filter)
+import Data.List (filter)
 import Data.String.Utils (rstrip)
 import Text.XML
-import Text.XML.Cursor
-import Data.Char (isPrint, isSpace)
-import qualified Text.XML.Cursor.Generic
+import Text.XML.Cursor (node)
+import Data.Char (isSpace)
+import qualified Text.XML.Cursor.Generic as XMLG
 
 --    failIfEmpty ([], "No root") [fromDocument doc]
 
@@ -41,6 +40,7 @@ makeRequest url = do
     -- Parse the body as HTML.
     body $$+- THX.sinkDoc
 
+printCursor :: [XMLG.Cursor Node] -> IO [()]
 printCursor cursor = mapM putStrLn ( map (printBasicNode . node) cursor)
 
 printBasicNode :: Node -> String
@@ -53,6 +53,7 @@ printBasicNode nodePrint@(NodeElement element) = mainNode ++ "Chlidren: \n" ++ c
       map (formatChildString . printBasicNodeElements) (elementNodes element)
     ]
 printBasicNode (NodeContent content) = prefixString "Content:" $ show . filterString $ unpack content
+printBasicNode _ = "Ignored: Node Instruction / Node Comment"
 
 formatChildString :: String -> String
 formatChildString string = rstrip . unlines . map (prefixString "    ")  $ lines string
@@ -71,4 +72,7 @@ printBasicNodeElements (NodeComment comment) = "element comment: " ++ show comme
 printBasicNodeElements  a = "element ???:" ++ show a
 
 filterString :: String -> String
-filterString = filter (not . isSpace)
+filterString = Data.List.filter (not . isSpace)
+
+filterText :: Text -> Text
+filterText = Data.Text.filter (not . isSpace)

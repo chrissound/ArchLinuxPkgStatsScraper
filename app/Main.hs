@@ -6,10 +6,8 @@ import Lib
 
 import Text.XML
 import Text.XML.Cursor
-import Data.Char (isPrint, isSpace)
-import Data.Maybe (mapMaybe)
-import qualified Text.XML.Cursor.Generic
-import Data.Text (unpack, pack, Text)
+import Data.Maybe (mapMaybe, fromJust, isJust)
+import Data.Text (unpack, Text)
 import Safe (headMay)
 import Data.List.Split (chunksOf)
 
@@ -17,9 +15,9 @@ failIfEmpty :: error -> [b] -> Either error [b]
 failIfEmpty reason [] = Left reason
 failIfEmpty _      xs = Right xs
 
---extract :: t -> (a -> [b]) -> [a] -> Either ([a], t) [b]
 --extract :: errorString -> ([a] -> [b]) -> Either ([b], ) [b]
 --tract es f x = failIfEmpty (x, es) $ x >>= f
+extract :: t -> (a -> [b]) -> [a] -> Either ([a], t) [b]
 extract es f x = failIfEmpty (x, es) $ x >>= f
 
 type Bob = Document -> Either ([Cursor], String) [Cursor]
@@ -72,7 +70,7 @@ parseDoc2 doc = failIfEmpty ([], "No root") [fromDocument doc]
 main :: IO ()
 main = do
     doc <- getDocumentFile "tmp/archlinux.html"
-    doc2 <- getDocumentFile "bob.html"
+    --doc2 <- getDocumentFile "bob.html"
     --let contents = do
     -- let test2 = parseDoc2 doc2
     -- case test2 of
@@ -86,13 +84,13 @@ main = do
     let test2 = parseDoc doc
     case test2 of
       Left (x, errorString) -> do
-        -- printCursor x
+        _ <- printCursor x
         -- mapM print x
         print  $ "failure:" ++ errorString
       Right x -> do
         -- print $ map getListOfPackages $ take 1 $ chunksOf 2 x
-        mapM getListOfPackages $ chunksOf 2 x
-        print "success"
+        print $ map getListOfPackages $ chunksOf 2 x
+        print ("success" :: [Char])
 
 getPercentageFromPackageCursor :: Cursor -> Either ([Cursor], String) [Cursor]
 getPercentageFromPackageCursor cursor = Right [cursor]
@@ -101,17 +99,19 @@ getPercentageFromPackageCursor cursor = Right [cursor]
   >>= extract "3" ($/ element "tr")
   >>= extract "4" ($/ element "td")
   >>= extract "5" (followingSibling)
-  >>= extract "7" (followingSibling)
+  >>= extract "6" (followingSibling)
 
-getListOfPackages :: [Cursor] -> IO ()
-getListOfPackages (cursor:cursorb:[]) = case (getContent $ node $ cursor) of
-  Just x -> case getPercentageFromPackageCursor cursorb of
-      Left ([c], e) -> do
-        print $ "Cursor b failed: " ++ e
-        print c
-      Right y -> do
-        let content = getContent.node $ head y
-        case content of
-          Just z -> print $ Just (x, filterString . unpack $ z)
-          n -> print n
-  n -> print n
+getListOfPackages :: [Cursor] -> Either ([Cursor], [Maybe Text]) (Text, Text)
+getListOfPackages cursorList@(cursor:cursorb:[]) = do
+  let packageName = getContent $ node $ cursor
+  let percentage = case getPercentageFromPackageCursor cursorb of
+        Right y -> case getContent.node $ head y of
+                        Just z -> Just $ filterText z
+                        Nothing -> Nothing
+        Left _ -> Nothing
+  let justValues = [packageName, percentage]
+      left = Left (cursorList, justValues)
+      justValuesLength = length justValues in
+    case (length $ filter isJust justValues) of
+            justValuesLength -> Right (fromJust packageName, fromJust percentage)
+            _ -> left
