@@ -7,6 +7,7 @@ import Lib
 import Text.XML
 import Text.XML.Cursor
 import Data.Maybe (mapMaybe, fromJust, isJust)
+import Data.Either (rights)
 import Data.Text (unpack, Text)
 import Safe (headMay)
 import Data.List.Split (chunksOf)
@@ -89,8 +90,12 @@ main = do
         print  $ "failure:" ++ errorString
       Right x -> do
         -- print $ map getListOfPackages $ take 1 $ chunksOf 2 x
-        print $ map getListOfPackages $ chunksOf 2 x
+        print $ rights $ map (getListOfPackages . listToTuple) $ chunksOf 2 x
         print ("success" :: [Char])
+
+listToTuple :: [a] -> (a, a)
+listToTuple (a:a':[]) = (a, a')
+listToTuple _ = error ""
 
 getPercentageFromPackageCursor :: Cursor -> Either ([Cursor], String) [Cursor]
 getPercentageFromPackageCursor cursor = Right [cursor]
@@ -101,19 +106,18 @@ getPercentageFromPackageCursor cursor = Right [cursor]
   >>= extract "5" (followingSibling)
   >>= extract "6" (followingSibling)
 
-getListOfPackages :: [Cursor] -> Either ([Cursor], [Maybe Text]) (Text, Text)
-getListOfPackages cursorList@(cursor:cursorb:[]) = do
+getListOfPackages :: (Cursor, Cursor) -> Either ([Cursor], [Maybe Text]) [Text]
+getListOfPackages (cursor, cursorb) = do
   let packageName = getContent $ node $ cursor
   let percentage =
         case getPercentageFromPackageCursor cursorb of
           Right y ->
             case getContent . node $ head y of
               Just z -> Just $ filterText z
-              Nothing -> Nothing
-          Left _ -> Nothing
+              _ -> Nothing
+          _ -> Nothing
   let justValues = [packageName, percentage]
-      left = Left (cursorList, justValues)
-      justValuesLength = length justValues
-  in case (length $ filter isJust justValues) of
-       justValuesLength -> Right (fromJust packageName, fromJust percentage)
-       _ -> left
+      left = Left ([cursor, cursorb], justValues)
+    in case (length $ filter isJust justValues) == length justValues of
+        True -> Right $ map fromJust justValues
+        False -> left
