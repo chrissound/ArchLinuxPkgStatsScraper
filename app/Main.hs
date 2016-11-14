@@ -12,10 +12,7 @@ import Data.List.Split (chunksOf)
 import Data.Aeson
 import Data.String.Conv (toS)
 
-
-type Bob = Document -> Either ([Cursor], String) [Cursor]
-
-parseDoc :: Bob
+parseDoc :: Document -> Either ([Cursor], String) [Cursor]
 parseDoc doc = Right [fromDocument doc]
     >>= extract "1" (($/ element "body"))
     >>= extract "2" (($/ element "div"))
@@ -33,17 +30,6 @@ parseDoc doc = Right [fromDocument doc]
     >>= extract "16" ($/ element "tbody")
     >>= extract "16" ($/ element "tr")
     >>= extract "16" ($/ element "td")
-
-parseDoc2 :: Bob
-parseDoc2 doc = failIfEmpty ([], "No root") [fromDocument doc]
-    >>= extract "1" ($/ element "body")
-    >>= extract "2" ($/ element "div")
-    >>= extract "3" (attributeIs "class" "content")
-    >>= extract "4" ($/ element "h1")
-    >>= extract "5" (contentIs "bob")
-    >>= extract "6" (parent)
-    >>= extract "7" ($/ element "p")
-
 
 main :: IO ()
 main = do
