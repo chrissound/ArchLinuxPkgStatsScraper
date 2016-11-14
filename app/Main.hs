@@ -8,14 +8,17 @@ import Arch
 
 import Text.XML (Document)
 import Text.XML.Cursor
-import Data.Either (rights)
+import Data.Either (rights, isRight)
 import Data.List.Split (chunksOf)
 import Data.Aeson
 import Data.String.Conv (toS)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-parseArchDoc :: String -> (Document -> Either ([Cursor], String) [Cursor])
+type ParsedDocument = Either ([Cursor], String) [Cursor]
+type DocumentParse = Document -> ParsedDocument
+
+parseArchDoc :: String -> (DocumentParse)
 parseArchDoc alias = (\doc-> Right [fromDocument doc]
     >>= extract "1" (($/ element "body"))
     >>= extract "2" (($/ element "div"))
@@ -41,20 +44,35 @@ data PackagesStats = PackagesStat
 
 instance ToJSON PackagesStats
 
+extractRights :: [Cursor] -> [[Text]]
+extractRights x = rights $ map (getListOfPackages . listToTuple) $ chunksOf 2 x
+
+fromRight :: Either a b -> b
+fromRight (Right x) = x
+fromRight _ = error "Not a Right value"
+
+
+errorIfLeft :: ParsedDocument -> IO ()
+errorIfLeft (Left (x, errorString)) = do
+  putStr $ printCursor x
+  print  $ "failure:" ++ errorString
+errorIfLeft _ = return ()
+
 main :: IO ()
 main = do
     doc <- getDocumentFile "tmp/archlinux.html"
-    let coreParse = parseArchDoc "extra" $ doc
-    case coreParse of
-      Left (x, errorString) -> do
-        putStr $ printCursor x
-        print  $ "failure:" ++ errorString
-      Right x -> do
-        -- print $ map getListOfPackages $ take 1 $ chunksOf 2 x
-        let packages = rights $ map (getListOfPackages . listToTuple) $ chunksOf 2 x
-        let packageStats = PackagesStat packages [["abc"]]
+    let coreParse = parseArchDoc "core" $ doc
+    let extraParse = parseArchDoc "extra" $ doc
+    errorIfLeft coreParse
+    errorIfLeft extraParse
+    case and $ map isRight [coreParse, extraParse] of
+      True -> do
+        let corePackages = extractRights $ fromRight coreParse
+        let extraPackages = extractRights $ fromRight extraParse
+        let packageStats = PackagesStat corePackages extraPackages
         writeFile "abc.json" (toS $ encode packageStats)
         print ("Success" :: String)
+      False -> print ("Errors occurred" :: String)
 
 listToTuple :: [a] -> (a, a)
 listToTuple (a:a':[]) = (a, a')
