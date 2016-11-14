@@ -42,8 +42,8 @@ makeRequest url = do
     -- Parse the body as HTML.
     body $$+- THX.sinkDoc
 
-printCursor :: [XMLG.Cursor Node] -> IO [()]
-printCursor cursor = mapM putStrLn ( map (printBasicNode . node) cursor)
+printCursor :: [XMLG.Cursor Node] -> String
+printCursor cursor = concat ( map (printBasicNode . node) cursor)
 
 printBasicNode :: Node -> String
 printBasicNode nodePrint@(NodeElement element) = mainNode ++ "Chlidren: \n" ++ children where

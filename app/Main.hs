@@ -15,8 +15,8 @@ import Data.String.Conv (toS)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-parseDoc :: Document -> Either ([Cursor], String) [Cursor]
-parseDoc doc = Right [fromDocument doc]
+parseArchDoc :: String -> (Document -> Either ([Cursor], String) [Cursor])
+parseArchDoc alias = (\doc-> Right [fromDocument doc]
     >>= extract "1" (($/ element "body"))
     >>= extract "2" (($/ element "div"))
     >>= extract "3" (attributeIs "id" "content")
@@ -25,17 +25,18 @@ parseDoc doc = Right [fromDocument doc]
     >>= extract "9" (($/ element "tbody"))
     >>= extract "10" (($/ element "tr"))
     >>= extract "11b" ($/ element "th")
-    >>= extract "11" (contentIs "core")
+    >>= extract "11" (contentIs alias)
     >>= extract "12" (parent)
     >>= extract "13" ($/ element "td")
     >>= extract "14" ($/ element "div")
     >>= extract "15" ($/ element "table")
     >>= extract "16" ($/ element "tbody")
     >>= extract "16" ($/ element "tr")
-    >>= extract "16" ($/ element "td")
+    >>= extract "16" ($/ element "td"))
 
 data PackagesStats = PackagesStat
   { core :: [[Text]]
+  , extra :: [[Text]]
   } deriving (Generic)
 
 instance ToJSON PackagesStats
@@ -43,15 +44,15 @@ instance ToJSON PackagesStats
 main :: IO ()
 main = do
     doc <- getDocumentFile "tmp/archlinux.html"
-    case parseDoc doc of
+    let coreParse = parseArchDoc "extra" $ doc
+    case coreParse of
       Left (x, errorString) -> do
-        _ <- printCursor x
-        -- mapM print x
+        putStr $ printCursor x
         print  $ "failure:" ++ errorString
       Right x -> do
         -- print $ map getListOfPackages $ take 1 $ chunksOf 2 x
         let packages = rights $ map (getListOfPackages . listToTuple) $ chunksOf 2 x
-        let packageStats = PackagesStat packages
+        let packageStats = PackagesStat packages [["abc"]]
         writeFile "abc.json" (toS $ encode packageStats)
         print ("Success" :: String)
 
