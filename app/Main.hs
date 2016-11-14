@@ -40,6 +40,9 @@ parseArchDoc alias = (\doc-> Right [fromDocument doc]
 data PackagesStats = PackagesStat
   { core :: [[Text]]
   , extra :: [[Text]]
+  , community :: [[Text]]
+  , multilib :: [[Text]]
+  , unknown :: [[Text]]
   } deriving (Generic)
 
 instance ToJSON PackagesStats
@@ -63,13 +66,19 @@ main = do
     doc <- getDocumentFile "tmp/archlinux.html"
     let coreParse = parseArchDoc "core" $ doc
     let extraParse = parseArchDoc "extra" $ doc
-    errorIfLeft coreParse
-    errorIfLeft extraParse
-    case and $ map isRight [coreParse, extraParse] of
+    let communityParse = parseArchDoc "community" $ doc
+    let multilibParse = parseArchDoc "multilib" $ doc
+    let unknownParse = parseArchDoc "unknown" $ doc
+    let packagesList = [coreParse, extraParse, communityParse, multilibParse, unknownParse]
+    mapM_ errorIfLeft packagesList
+    case and $ map isRight packagesList of
       True -> do
         let corePackages = extractRights $ fromRight coreParse
         let extraPackages = extractRights $ fromRight extraParse
-        let packageStats = PackagesStat corePackages extraPackages
+        let communityPackages = extractRights $ fromRight communityParse
+        let multilibPackages = extractRights $ fromRight multilibParse
+        let unknownPackages = extractRights $ fromRight unknownParse
+        let packageStats = PackagesStat corePackages extraPackages communityPackages multilibPackages unknownPackages
         writeFile "abc.json" (toS $ encode packageStats)
         print ("Success" :: String)
       False -> print ("Errors occurred" :: String)
