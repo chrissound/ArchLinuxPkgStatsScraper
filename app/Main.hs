@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Main where
 
@@ -11,6 +12,8 @@ import Data.Either (rights)
 import Data.List.Split (chunksOf)
 import Data.Aeson
 import Data.String.Conv (toS)
+import Data.Text (Text)
+import GHC.Generics (Generic)
 
 parseDoc :: Document -> Either ([Cursor], String) [Cursor]
 parseDoc doc = Right [fromDocument doc]
@@ -31,6 +34,12 @@ parseDoc doc = Right [fromDocument doc]
     >>= extract "16" ($/ element "tr")
     >>= extract "16" ($/ element "td")
 
+data PackagesStats = PackagesStat
+  { core :: [[Text]]
+  } deriving (Generic)
+
+instance ToJSON PackagesStats
+
 main :: IO ()
 main = do
     doc <- getDocumentFile "tmp/archlinux.html"
@@ -42,8 +51,8 @@ main = do
       Right x -> do
         -- print $ map getListOfPackages $ take 1 $ chunksOf 2 x
         let packages = rights $ map (getListOfPackages . listToTuple) $ chunksOf 2 x
-        --print $ packages
-        writeFile "abc.json" (toS $ encode packages)
+        let packageStats = PackagesStat packages
+        writeFile "abc.json" (toS $ encode packageStats)
         print ("Success" :: String)
 
 listToTuple :: [a] -> (a, a)

@@ -7,13 +7,6 @@ import Lib
 import Text.XML.Cursor
 import Data.Text (Text)
 import Data.Maybe (fromJust, isJust)
-import Data.Aeson
-import GHC.Generics (Generic)
-
-data PackageEntry = PackageEntry [Text] deriving (Generic)
-
-instance ToJSON PackageEntry where
-  toEncoding = genericToEncoding defaultOptions
 
 getListOfPackages :: (Cursor, Cursor) -> Either ([Cursor], [Maybe Text]) [Text]
 getListOfPackages (cursor, cursorb) = do
