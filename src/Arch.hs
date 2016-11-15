@@ -6,7 +6,6 @@ import Lib
 
 import Text.XML.Cursor
 import Data.Text (Text)
-import Data.Maybe (fromJust, isJust)
 
 getListOfPackages :: (Cursor, Cursor) -> Either ([Cursor], [Maybe Text]) [Text]
 getListOfPackages (cursor, cursorb) = do
@@ -18,11 +17,15 @@ getListOfPackages (cursor, cursorb) = do
               Just z -> Just $ filterText z
               _ -> Nothing
           _ -> Nothing
-  let justValues = [packageName, percentage]
-      left = Left ([cursor, cursorb], justValues)
-    in case (length $ filter isJust justValues) == length justValues of
-        True -> Right $ map fromJust justValues
-        False -> left
+  let maybeValues = [packageName, percentage]
+      values = concatMap g maybeValues
+    in case length maybeValues == length values of
+        True -> Right values
+        False -> Left ([cursor], maybeValues)
+
+g :: Maybe a -> [a]
+g (Just x) = [x]
+g _ = []
 
 getPercentageFromPackageCursor :: Cursor -> Either ([Cursor], String) [Cursor]
 getPercentageFromPackageCursor cursor = Right [cursor]
