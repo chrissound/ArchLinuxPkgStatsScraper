@@ -6,46 +6,12 @@ module Main where
 import Lib
 import Arch
 
-import Text.XML (Document)
 import Text.XML.Cursor
 import Data.Either (rights, isRight)
 import Data.List.Split (chunksOf)
-import Data.Aeson
 import Data.String.Conv (toS)
 import Data.Text (Text)
-import GHC.Generics (Generic)
-
-type ParsedDocument = Either ([Cursor], String) [Cursor]
-type DocumentParse = Document -> ParsedDocument
-
-parseArchDoc :: String -> (DocumentParse)
-parseArchDoc alias = (\doc-> Right [fromDocument doc]
-    >>= extract "1" (($/ element "body"))
-    >>= extract "2" (($/ element "div"))
-    >>= extract "3" (attributeIs "id" "content")
-    >>= extract "5" (($/ element "div"))
-    >>= extract "6" (($/ element "table"))
-    >>= extract "9" (($/ element "tbody"))
-    >>= extract "10" (($/ element "tr"))
-    >>= extract "11b" ($/ element "th")
-    >>= extract "11" (contentIs alias)
-    >>= extract "12" (parent)
-    >>= extract "13" ($/ element "td")
-    >>= extract "14" ($/ element "div")
-    >>= extract "15" ($/ element "table")
-    >>= extract "16" ($/ element "tbody")
-    >>= extract "16" ($/ element "tr")
-    >>= extract "16" ($/ element "td"))
-
-data PackagesStats = PackagesStat
-  { core :: [[Text]]
-  , extra :: [[Text]]
-  , community :: [[Text]]
-  , multilib :: [[Text]]
-  , unknown :: [[Text]]
-  } deriving (Generic)
-
-instance ToJSON PackagesStats
+import Data.Aeson (encode)
 
 extractRights :: [Cursor] -> [[Text]]
 extractRights x = rights $ map (getListOfPackages . listToTuple) $ chunksOf 2 x
