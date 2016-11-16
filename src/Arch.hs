@@ -11,7 +11,7 @@ import GHC.Generics (Generic)
 import Data.Aeson (ToJSON)
 
 
-getListOfPackages :: (Cursor, Cursor) -> CursorParseErrorSuccessEither (Maybe Text) Text
+getListOfPackages :: (Cursor, Cursor) -> CursorParseEither ([Maybe Text]) Text
 getListOfPackages (cursor, cursorb) = do
   let packageName = case value == "" of
         True -> Nothing
@@ -22,11 +22,11 @@ getListOfPackages (cursor, cursorb) = do
           _ -> Nothing
   justsToRight packageName percentage ([cursor], [packageName, percentage])
 
-justsToRight :: Maybe Text -> Maybe Text -> CursorParseLeft (Maybe Text) -> CursorParseErrorSuccessEither (Maybe Text) Text
+justsToRight :: Maybe a -> Maybe a -> CursorParseLeft b -> CursorParseEither b a
 justsToRight (Just x) (Just y) _ = Right [x, y]
 justsToRight _ _ failure = Left failure
 
-getPercentageFromPackageCursor :: Cursor -> Either ([Cursor], String) [Cursor]
+getPercentageFromPackageCursor :: Cursor -> CursorParseEither String Cursor
 getPercentageFromPackageCursor cursor = Right [cursor]
   >>= extract "1" ($/ element "table")
   >>= extract "2" ($/ element "tbody")
@@ -35,8 +35,8 @@ getPercentageFromPackageCursor cursor = Right [cursor]
   >>= extract "5" (followingSibling)
   >>= extract "6" (followingSibling)
 
-type CursorParseLeft a = ([Cursor], [a])
-type CursorParseErrorSuccessEither failListType succListType = Either (CursorParseLeft failListType) [succListType]
+type CursorParseLeft a = ([Cursor], a)
+type CursorParseEither failType succListType = Either (CursorParseLeft failType) [succListType]
 
 type DocumentParse = Document -> ParsedDocument
 
