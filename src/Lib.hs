@@ -14,13 +14,10 @@ import Text.XML.Cursor (node, Cursor)
 import Data.Char (isSpace)
 import qualified Text.XML.Cursor.Generic as XMLG
 
---    failIfEmpty ([], "No root") [fromDocument doc]
-
--- parseDoc doc = failIfEmpty ([], "no document") $ [fromDocument doc]
---     >>= (\x -> failIfEmpty (x, "no body!") $ x >>= ($/ element "body"))
---     >>= (\x -> failIfEmpty (x, "no divs!") $ x >>= ($/ element "div"))
---     >>= (\x -> failIfEmpty (x, "no contents!") $ x >>= attributeIs "id" "content")
---     >>= pure
+type CursorParseLeft a = ([Cursor], a)
+type CursorParseEither failType succListType = Either (CursorParseLeft failType) [succListType]
+type DocumentParse = Document -> ParsedDocument
+type ParsedDocument = CursorParseEither String Cursor
 
 getDocumentFile :: FilePath -> IO Document
 getDocumentFile path = do

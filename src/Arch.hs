@@ -3,13 +3,20 @@
 module Arch where
 
 import Lib
-
-import Text.XML (Document)
 import Text.XML.Cursor
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON)
 
+data PackagesStats = PackagesStat
+  { core :: [[Text]]
+  , extra :: [[Text]]
+  , community :: [[Text]]
+  , multilib :: [[Text]]
+  , unknown :: [[Text]]
+  } deriving (Generic)
+
+instance ToJSON PackagesStats
 
 getListOfPackages :: (Cursor, Cursor) -> CursorParseEither ([Maybe Text]) Text
 getListOfPackages (cursor, cursorb) = do
@@ -35,22 +42,6 @@ getPercentageFromPackageCursor cursor = Right [cursor]
   >>= extract "5" (followingSibling)
   >>= extract "6" (followingSibling)
 
-type CursorParseLeft a = ([Cursor], a)
-type CursorParseEither failType succListType = Either (CursorParseLeft failType) [succListType]
-
-type DocumentParse = Document -> ParsedDocument
-
-type ParsedDocument = Either ([Cursor], String) [Cursor]
-
-data PackagesStats = PackagesStat
-  { core :: [[Text]]
-  , extra :: [[Text]]
-  , community :: [[Text]]
-  , multilib :: [[Text]]
-  , unknown :: [[Text]]
-  } deriving (Generic)
-
-instance ToJSON PackagesStats
 
 parseArchDoc :: Text-> (DocumentParse)
 parseArchDoc alias = (\doc-> Right [fromDocument doc]
