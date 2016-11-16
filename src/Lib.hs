@@ -13,8 +13,6 @@ import Text.XML
 import Text.XML.Cursor (node, Cursor)
 import Data.Char (isSpace)
 import qualified Text.XML.Cursor.Generic as XMLG
-import Safe (headMay)
-import Data.Maybe (mapMaybe)
 
 --    failIfEmpty ([], "No root") [fromDocument doc]
 
@@ -79,20 +77,18 @@ filterString = Data.List.filter (not . isSpace)
 filterText :: Text -> Text
 filterText = Data.Text.filter (not . isSpace)
 
-contentIs :: String -> Cursor -> [Cursor]
+contentIs :: Text -> Cursor -> [Cursor]
 contentIs text cursor = case cursorContentIs text cursor of
   False -> []
   True -> [cursor]
 
-cursorContentIs :: String -> Cursor -> Bool
-cursorContentIs text cursor = case getContent $ node cursor of
-  Just x -> unpack x == text
-  Nothing -> False
+cursorContentIs :: Text -> Cursor -> Bool
+cursorContentIs text cursor = (getContent $ node cursor) == text
 
-getContent :: Node -> (Maybe Text)
-getContent (NodeElement e) = headMay $ mapMaybe getContent $ elementNodes e
-getContent (NodeContent c) = Just c
-getContent _ = Just "???"
+getContent :: Node -> Text
+getContent (NodeElement e) = getContent $ head $ elementNodes e
+getContent (NodeContent c) = c
+getContent _ = ""
 
 failIfEmpty :: error -> [b] -> Either error [b]
 failIfEmpty reason [] = Left reason

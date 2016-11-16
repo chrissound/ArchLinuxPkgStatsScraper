@@ -10,25 +10,21 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON)
 
-getListOfPackages :: (Cursor, Cursor) -> Either ([Cursor], [Maybe Text]) [Text]
-getListOfPackages (cursor, cursorb) = do
-  let packageName = getContent $ node $ cursor
-  let percentage =
-        case getPercentageFromPackageCursor cursorb of
-          Right y ->
-            case getContent . node $ head y of
-              Just z -> Just $ filterText z
-              _ -> Nothing
-          _ -> Nothing
-  let maybeValues = [packageName, percentage]
-      values = concatMap g maybeValues
-    in case length maybeValues == length values of
-        True -> Right values
-        False -> Left ([cursor], maybeValues)
 
-g :: Maybe a -> [a]
-g (Just x) = [x]
-g _ = []
+getListOfPackages :: (Cursor, Cursor) -> CursorParseErrorSuccessEither (Maybe Text) Text
+getListOfPackages (cursor, cursorb) = do
+  let packageName = case value == "" of
+        True -> Nothing
+        False -> Just value
+        where value = getContent $ node $ cursor
+  let percentage = case getPercentageFromPackageCursor cursorb of
+          Right (y:_) -> Just . filterText  . getContent . node $ y
+          _ -> Nothing
+  justsToRight packageName percentage ([cursor], [packageName, percentage])
+
+justsToRight :: Maybe Text -> Maybe Text -> CursorParseLeft (Maybe Text) -> CursorParseErrorSuccessEither (Maybe Text) Text
+justsToRight (Just x) (Just y) _ = Right [x, y]
+justsToRight _ _ failure = Left failure
 
 getPercentageFromPackageCursor :: Cursor -> Either ([Cursor], String) [Cursor]
 getPercentageFromPackageCursor cursor = Right [cursor]
@@ -38,6 +34,9 @@ getPercentageFromPackageCursor cursor = Right [cursor]
   >>= extract "4" ($/ element "td")
   >>= extract "5" (followingSibling)
   >>= extract "6" (followingSibling)
+
+type CursorParseLeft a = ([Cursor], [a])
+type CursorParseErrorSuccessEither failListType succListType = Either (CursorParseLeft failListType) [succListType]
 
 type DocumentParse = Document -> ParsedDocument
 
@@ -53,7 +52,7 @@ data PackagesStats = PackagesStat
 
 instance ToJSON PackagesStats
 
-parseArchDoc :: String -> (DocumentParse)
+parseArchDoc :: Text-> (DocumentParse)
 parseArchDoc alias = (\doc-> Right [fromDocument doc]
     >>= extract "1" (($/ element "body"))
     >>= extract "2" (($/ element "div"))
