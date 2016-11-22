@@ -30,6 +30,7 @@ library
                        , split
                        , aeson
                        , string-conv
+                       , either
   default-language:    Haskell2010
 
 executable ArchPkgstatsScraper
@@ -49,6 +50,7 @@ executable ArchPkgstatsScraper
                        , split
                        , aeson
                        , string-conv
+                       , either
   default-language:    Haskell2010
 
 test-suite ArchPkgstatsScraper-test

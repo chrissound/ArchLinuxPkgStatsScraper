@@ -8,13 +8,13 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON)
 
-data PackagesStats = PackagesStat
+data PackagesStats = PackagesStats
   { core :: [[Text]]
   , extra :: [[Text]]
   , community :: [[Text]]
   , multilib :: [[Text]]
   , unknown :: [[Text]]
-  } deriving (Generic)
+  } deriving (Generic, Show)
 
 instance ToJSON PackagesStats
 
