@@ -7,15 +7,25 @@ import Lib
 import Arch
 
 import Text.XML.Cursor
-import Data.Either (rights)
 import Data.List.Split (chunksOf)
 import Data.Text (Text)
 import Data.String.Conv (toS)
 import Data.Aeson (encode)
+--import Data.Either (rights, isRight)
 
-extractRights :: Either e [Cursor] -> Either e [[Text]]
-extractRights (Right x) = Right $ rights $ map (getListOfPackages . listToTuple) $ chunksOf 2 x
-extractRights (Left e) = Left e
+
+hush :: Either e a -> Maybe a
+hush (Left _) = Nothing
+hush (Right a) = Just a
+
+extractRights :: Either e [Cursor] -> Either String [[Text]]
+extractRights (Right x) = case sequence . map hush $ values of
+   Just  r -> Right r
+   Nothing -> Left "Not all packages correct"
+  where
+    values = (map (getListOfPackages . listToTuple) $ chunksOf 2 x)
+
+extractRights (Left _) = Left "test2"
 
 printpkgs :: CursorParseLeft String -> String
 printpkgs (x, errorString) =
@@ -35,7 +45,8 @@ main = do
       Right pkgs -> do
         writeFile "abc.json" (toS $ encode pkgs)
         print ("Success" :: String)
-      Left l -> putStrLn . printpkgs $ l
+      --Left l -> putStrLn . printpkgs $ l
+      Left l -> print l
 
 listToTuple :: [a] -> (a, a)
 listToTuple (a:a':[]) = (a, a')
