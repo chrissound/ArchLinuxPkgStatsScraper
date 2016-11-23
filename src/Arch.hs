@@ -27,12 +27,10 @@ getListOfPackages (cursor, cursorb) = do
   let percentage = case getPercentageFromPackageCursor cursorb of
           Right (y:_) -> Just . filterText  . getContent . node $ y
           _ -> Nothing
-  case justsToRight <$> packageName <*> percentage of
-    Just x -> x
-    Nothing -> Left ([cursor], [packageName, percentage])
-
-justsToRight :: a -> a -> CursorParseEither b a
-justsToRight x y = Right [x, y]
+  let required = [packageName, percentage] in
+    case sequence required of
+      Just x -> Right x
+      Nothing -> Left ([cursor], required)
 
 getPercentageFromPackageCursor :: Cursor -> CursorParseEither String Cursor
 getPercentageFromPackageCursor cursor = Right [cursor]

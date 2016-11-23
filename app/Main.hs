@@ -19,13 +19,13 @@ hush (Left _) = Nothing
 hush (Right a) = Just a
 
 extractRights :: Either e [Cursor] -> Either String [[Text]]
-extractRights (Right x) = case sequence . map hush $ values of
-   Just  r -> Right r
-   Nothing -> Left "Not all packages correct"
+extractRights (Right x) = case sequence values of
+   Right r -> Right r
+   Left l -> Left $ "Package not parsed correctly: " ++ show l
   where
-    values = (map (getListOfPackages . listToTuple) $ chunksOf 2 x)
+    values = (map (getListOfPackages . listToTuple) $ chunksOf 2 x) :: [CursorParseEither ([Maybe Text]) Text]
 
-extractRights (Left _) = Left "test2"
+extractRights (Left _) = Left "Unable to parse package type"
 
 printpkgs :: CursorParseLeft String -> String
 printpkgs (x, errorString) =
