@@ -21,7 +21,7 @@ hush (Right a) = Just a
 extractRights :: Either e [Cursor] -> Either String [[Text]]
 extractRights (Right x) = case sequence values of
    Right r -> Right r
-   Left l -> Left $ "Package not parsed correctly: " ++ show l
+   Left (_, required) -> Left $ "Package not parsed correctly: " ++ show required
   where
     values = (map (getListOfPackages . listToTuple) $ chunksOf 2 x) :: [CursorParseEither ([Maybe Text]) Text]
 
