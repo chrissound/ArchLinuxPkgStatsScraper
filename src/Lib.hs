@@ -29,11 +29,8 @@ makeRequest url = do
   manager <- newManager tlsManagerSettings
 
   runResourceT $ do
-    -- Actually make the request
     response <- http request manager
-    -- Extract the response body.
     let body = responseBody response
-    -- Parse the body as HTML.
     body $$+- THX.sinkDoc
 
 formatChildString :: String -> String
