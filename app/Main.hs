@@ -7,7 +7,6 @@ import Lib
 import Arch
 
 import Data.List.Split (chunksOf)
-import Data.Text (Text)
 import Data.String.Conv (toS)
 import Data.Aeson (encode)
 --import Data.Either (rights, isRight)
@@ -17,19 +16,19 @@ hush :: Either e a -> Maybe a
 hush (Left _) = Nothing
 hush (Right a) = Just a
 
-extractRights :: ParsedDocument -> Either String [[Text]]
+extractRights :: ParsedDocument -> Either String [PackageStat]
 extractRights (Right x) = case sequence values of
    Right r -> Right r
    Left (_, required) -> Left $ "Package not parsed correctly: " ++ show required
   where
-    values = (map (getListOfPackages . listToTuple) $ chunksOf 2 x) :: [CursorParseEither ([Maybe Text]) Text]
+    values = map (getListOfPackages . listToTuple) $ chunksOf 2 x
 
 extractRights (Left (x, errorString)) = Left $ "Unable to parse package type, error occurred:" ++ errorString ++ "\n\n" ++ printCursor x
 
 main :: IO ()
 main = do
-    doc <- makeRequest "https://www.archlinux.de/?page=PackageStatistics"
-    --doc <- getDocumentFile "tmp/archlinux.html"
+    --doc <- makeRequest "https://www.archlinux.de/?page=PackageStatistics"
+    doc <- getDocumentFile "archlinux2.html"
     let packageStats = PackagesStats
           <$> extractRights ( parseArchDoc "core" $ doc )
           <*> extractRights ( parseArchDoc "extra" $ doc )

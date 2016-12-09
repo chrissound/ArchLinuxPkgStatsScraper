@@ -1,24 +1,42 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
-module Arch where
+module Arch
+  (PackagesStats (..)
+  ,PackageStat
+  ,ParsedDocument
+  ,getListOfPackages
+  ,parseArchDoc
+  ,getPackagesStats)
+where
 
 import Lib
 import Text.XML.Cursor
-import Data.Text (Text)
+import Data.Text (Text, unpack)
 import GHC.Generics (Generic)
-import Data.Aeson (ToJSON)
+import Data.Aeson (ToJSON, FromJSON, decode)
+import qualified Data.ByteString.Lazy as Lazy
+import Text.XML (Document)
+
+type PackageStat = (Text, Float)
+
+type DocumentParse = Document -> ParsedDocument
+type ParsedDocument = CursorParseEither String [Cursor]
 
 data PackagesStats = PackagesStats
-  { core :: [[Text]]
-  , extra :: [[Text]]
-  , community :: [[Text]]
-  , multilib :: [[Text]]
-  , unknown :: [[Text]]
+  { core :: [PackageStat]
+  , extra :: [PackageStat]
+  , community :: [PackageStat]
+  , multilib :: [PackageStat]
+  , unknown :: [PackageStat]
   } deriving (Generic, Show)
 
 instance ToJSON PackagesStats
+instance FromJSON PackagesStats
 
-getListOfPackages :: (Cursor, Cursor) -> CursorParseEither ([Maybe Text]) Text
+getPackagesStats :: String -> IO (Maybe PackagesStats)
+getPackagesStats x = decode <$> Lazy.readFile x
+
+getListOfPackages :: (Cursor, Cursor) -> CursorParseEither ([Maybe Text]) PackageStat
 getListOfPackages (cursor, cursorb) = do
   let packageName = case value == "" of
         True -> Nothing
@@ -29,10 +47,10 @@ getListOfPackages (cursor, cursorb) = do
           _ -> Nothing
   let required = [packageName, percentage] in
     case sequence required of
-      Just x -> Right x
-      Nothing -> Left ([cursor], required)
+      Just (pname:pperc:[]) -> Right (pname, 0.01 * (read $ filterFloatString . unpack $ pperc))
+      _ -> Left ([cursor], required)
 
-getPercentageFromPackageCursor :: Cursor -> CursorParseEither String Cursor
+getPercentageFromPackageCursor :: Cursor -> CursorParseEither String [Cursor]
 getPercentageFromPackageCursor cursor = Right [cursor]
   >>= extract "1" ($/ element "table")
   -- >>= extract "2" ($/ element "tbody")
@@ -42,7 +60,7 @@ getPercentageFromPackageCursor cursor = Right [cursor]
   >>= extract "6" (followingSibling)
 
 
-parseArchDoc :: Text-> (DocumentParse)
+parseArchDoc :: Text-> DocumentParse
 parseArchDoc alias = (\doc-> Right [fromDocument doc]
     >>= extract "ParseArchDoc E1" ($/ element "body")
     >>= extract "ParseArchDoc E2" ($/ element "div")

@@ -14,9 +14,7 @@ import Text.XML.Cursor (node, Cursor)
 import qualified Text.XML.Cursor.Generic as XMLG
 
 type CursorParseLeft a = ([Cursor], a)
-type CursorParseEither failType succListType = Either (CursorParseLeft failType) [succListType]
-type DocumentParse = Document -> ParsedDocument
-type ParsedDocument = CursorParseEither String Cursor
+type CursorParseEither failType succListType = Either (CursorParseLeft failType) succListType
 
 getDocumentFile :: FilePath -> IO Document
 getDocumentFile path = do
@@ -25,9 +23,7 @@ getDocumentFile path = do
 makeRequest :: String -> IO Document
 makeRequest url = do
   request <- parseUrlThrow url
-
   manager <- newManager tlsManagerSettings
-
   runResourceT $ do
     response <- http request manager
     let body = responseBody response
@@ -44,6 +40,9 @@ prefixStringIndent = prefixString "    "
 
 filterString :: String -> String
 filterString = strip . unwords . words
+
+filterFloatString :: String -> String
+filterFloatString = filterString . filter (/= '%')
 
 filterText :: Text -> Text
 filterText = DT.strip . DT.unwords . DT.words
