@@ -9,12 +9,6 @@ import Arch
 import Data.List.Split (chunksOf)
 import Data.String.Conv (toS)
 import Data.Aeson (encode)
---import Data.Either (rights, isRight)
-
-
-hush :: Either e a -> Maybe a
-hush (Left _) = Nothing
-hush (Right a) = Just a
 
 extractRights :: ParsedDocument -> Either String [PackageStat]
 extractRights (Right x) = case sequence values of
@@ -38,9 +32,8 @@ main = do
 
     case packageStats of
       Right pkgs -> do
-        writeFile "packageStatistics.json" (toS $ encode pkgs)
+        writeFile "packageStatistics.json" . toS $ encode pkgs
         print ("Success" :: String)
-      --Left l -> putStrLn . printpkgs $ l
       Left l -> putStrLn l
 
 listToTuple :: [a] -> (a, a)

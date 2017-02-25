@@ -6,7 +6,9 @@ module Arch
   ,ParsedDocument
   ,getListOfPackages
   ,parseArchDoc
-  ,getPackagesStats)
+  ,getPackagesStats
+  ,getPackages
+  ,searchPackageStats)
 where
 
 import Lib
@@ -16,6 +18,7 @@ import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON, decode)
 import qualified Data.ByteString.Lazy as Lazy
 import Text.XML (Document)
+import Data.List (find)
 
 type PackageStat = (Text, Float)
 
@@ -33,8 +36,20 @@ data PackagesStats = PackagesStats
 instance ToJSON PackagesStats
 instance FromJSON PackagesStats
 
+getPackages :: PackagesStats -> [PackageStat]
+getPackages s = concat [
+  core s,
+  extra s,
+  community s,
+  multilib s,
+  unknown s
+  ]
+
 getPackagesStats :: String -> IO (Maybe PackagesStats)
 getPackagesStats x = decode <$> Lazy.readFile x
+
+searchPackageStats :: PackagesStats -> Text -> Maybe PackageStat
+searchPackageStats packageStats package = find ((== package) . fst) $ getPackages packageStats
 
 getListOfPackages :: (Cursor, Cursor) -> CursorParseEither ([Maybe Text]) PackageStat
 getListOfPackages (cursor, cursorb) = do
