@@ -32,11 +32,8 @@ makeRequest url = do
 formatChildString :: String -> String
 formatChildString string = rstrip . unlines . map prefixStringIndent $ lines string
 
-prefixString :: String -> String -> String
-prefixString prefix string = prefix ++ string
-
 prefixStringIndent :: String -> String
-prefixStringIndent = prefixString "    "
+prefixStringIndent = (++ "    ")
 
 filterString :: String -> String
 filterString = strip . unwords . words
@@ -60,12 +57,10 @@ getContent (NodeElement e) = mconcat . map getContent $ elementNodes e
 getContent (NodeContent c) = c
 getContent _ = "Ignored: Node Instruction / Node Comment"
 
-failIfEmpty :: error -> [b] -> Either error [b]
-failIfEmpty reason [] = Left reason
-failIfEmpty _      xs = Right xs
-
 extract :: t -> (a -> [b]) -> [a] -> Either ([a], t) [b]
-extract es f x = failIfEmpty (x, es) $ x >>= f
+extract es f x = case (x >>= f) of
+  [] -> Left (x, es)
+  y -> Right y
 
 printCursor :: [XMLG.Cursor Node] -> String
 printCursor cursor = concat ( map (printBasicNode . node) cursor)
@@ -79,7 +74,7 @@ printBasicNode nodePrint@(NodeElement element) = mainNode ++ "Chlidren: \n" ++ c
   children = concatMap unlines [
       map (formatChildString . printBasicNodeElements) (elementNodes element)
     ]
-printBasicNode (NodeContent content) = prefixString "Content:" . filterString $ unpack content
+printBasicNode (NodeContent content) = (++ "Content:") . filterString $ unpack content
 printBasicNode _ = "Ignored: Node Instruction / Node Comment"
 
 printBasicNodeElements :: Node -> String
