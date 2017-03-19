@@ -11,6 +11,7 @@ module Arch
   ,searchPackageStats)
 where
 
+import XMLPrint
 import Lib
 import Text.XML.Cursor
 import Data.Text (Text, unpack)

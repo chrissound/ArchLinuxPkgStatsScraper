@@ -5,6 +5,7 @@ module Main where
 
 import Lib
 import Arch
+import XMLPrint
 
 import Data.List.Split (chunksOf)
 import Data.String.Conv (toS)
@@ -13,13 +14,14 @@ import System.Environment (getArgs)
 import Text.XML (Document)
 
 extractRights :: ParsedDocument -> Either String [PackageStat]
-extractRights (Right x) = case sequence values of
-   Right r -> Right r
+extractRights (Right x) = case sequence . map (getListOfPackages . listToTuple) $ chunksOf 2 x of
+   Right r -> return r
    Left (_, required) -> Left $ "Package not parsed correctly: " ++ show required
-  where
-    values = map (getListOfPackages . listToTuple) $ chunksOf 2 x
-
-extractRights (Left (x, errorString)) = Left $ "Unable to parse package type, error occurred:" ++ errorString ++ "\n\n" ++ printCursor x
+extractRights (Left (x, errorString)) = Left
+  $ "Unable to parse package type, error occurred:"
+  ++ errorString
+  ++ "\n\n"
+  ++ printCursor x
 
 getDocumentByArgs :: IO Text.XML.Document
 getDocumentByArgs = do
@@ -37,12 +39,12 @@ main :: IO ()
 main = do
     doc <- getDocumentByArgs
     let packageStats = PackagesStats
-          <$> extractRights ( parseArchDoc "core" $ doc )
-          <*> extractRights ( parseArchDoc "extra" $ doc )
-          <*> extractRights ( parseArchDoc "community" $ doc )
-          <*> extractRights ( parseArchDoc "multilib" $ doc )
-          <*> extractRights ( parseArchDoc "unknown" $ doc )
-
+          <$> f "core"
+          <*> f "extra"
+          <*> f "community"
+          <*> f "multilib"
+          <*> f "unknown"
+          where f x = extractRights ( parseArchDoc x $ doc )
     case packageStats of
       Right pkgs -> do
         writeFile "packageStatistics.json" . toS $ encode pkgs
