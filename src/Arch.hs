@@ -53,12 +53,11 @@ searchPackageStats :: PackagesStats -> Text -> Maybe PackageStat
 searchPackageStats packageStats package = find ((== package) . fst) $ getPackages packageStats
 
 getListOfPackages :: (Cursor, Cursor) -> CursorParseEither ([Maybe Text]) PackageStat
-getListOfPackages (cursor, cursorb) = do
-  let packageName = case value == "" of
-        True -> Nothing
-        False -> Just value
-        where value = getContent $ node $ cursor
-  let percentage = case getPercentageFromPackageCursor cursorb of
+getListOfPackages (cursor, cPkgValue) = do
+  let packageName = case (getContent . node $ cursor) of
+        ("") -> Nothing
+        v -> Just v
+  let percentage = case getPercentageFromPackageCursor cPkgValue of
           Right (y:_) -> Just . filterText  . getContent . node $ y
           _ -> Nothing
   let required = [packageName, percentage] in
@@ -73,8 +72,6 @@ getPercentageFromPackageCursor cursor = Right [cursor]
   >>= extract "3" ($/ element "tr")
   >>= extract "4" ($/ element "td")
   >>= extract "5" (followingSibling)
-  >>= extract "6" (followingSibling)
-
 
 parseArchDoc :: Text-> DocumentParse
 parseArchDoc alias = (\doc-> Right [fromDocument doc]
