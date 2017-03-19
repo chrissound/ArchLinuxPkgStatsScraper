@@ -20,8 +20,9 @@ import Data.Aeson (ToJSON, FromJSON, decode)
 import qualified Data.ByteString.Lazy as Lazy
 import Text.XML (Document)
 import Data.List (find)
+import Data.Char (isDigit)
 
-type PackageStat = (Text, Float)
+type PackageStat = (Text, Int)
 
 type DocumentParse = Document -> ParsedDocument
 type ParsedDocument = CursorParseEither String [Cursor]
@@ -52,26 +53,32 @@ getPackagesStats x = decode <$> Lazy.readFile x
 searchPackageStats :: PackagesStats -> Text -> Maybe PackageStat
 searchPackageStats packageStats package = find ((== package) . fst) $ getPackages packageStats
 
+
 getListOfPackages :: (Cursor, Cursor) -> CursorParseEither ([Maybe Text]) PackageStat
 getListOfPackages (cursor, cPkgValue) = do
   let packageName = case (getContent . node $ cursor) of
         ("") -> Nothing
         v -> Just v
-  let percentage = case getPercentageFromPackageCursor cPkgValue of
-          Right (y:_) -> Just . filterText  . getContent . node $ y
+  let percentage = case (getPercentageFromPackageCursor cPkgValue) of
+          Right (c:_) -> Just . filterText . head $ attribute "title" c
           _ -> Nothing
   let required = [packageName, percentage] in
     case sequence required of
-      Just (pname:pperc:[]) -> Right (pname, 0.01 * (read $ filterFloatString . unpack $ pperc))
+      Just (pname:pperc:[]) -> Right (pname, parsePkgValue pperc)
       _ -> Left ([cursor], required)
+  where
+    -- "35,351 of 35,769" -> 35351
+    parsePkgValue :: Text -> Int
+    parsePkgValue = read . filter isDigit . head . words . unpack
 
 getPercentageFromPackageCursor :: Cursor -> CursorParseEither String [Cursor]
 getPercentageFromPackageCursor cursor = Right [cursor]
-  >>= extract "1" ($/ element "table")
+  >>= extract "ParseArchPercentage E1" ($/ element "table")
   -- >>= extract "2" ($/ element "tbody")
-  >>= extract "3" ($/ element "tr")
-  >>= extract "4" ($/ element "td")
-  >>= extract "5" (followingSibling)
+  >>= extract "ParseArchPercentage E3" ($/ element "tr")
+  >>= extract "ParseArchPercentage E4" ($/ element "td")
+  >>= extract "ParseArchPercentage E5" ($/ element "div")
+  >>= extract "ParseArchPercentage E6" (hasAttribute "title")
 
 parseArchDoc :: Text-> DocumentParse
 parseArchDoc alias = (\doc-> Right [fromDocument doc]
