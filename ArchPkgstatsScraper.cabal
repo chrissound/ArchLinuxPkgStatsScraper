@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib, Arch, XMLPrint
+  exposed-modules:     Lib, Arch, XMLPrint, MainCommon
   build-depends:       base >= 4.7 && < 5
                        , text
                        , conduit
@@ -51,7 +51,7 @@ executable ArchPkgstatsScraper
                        , split
                        , aeson
                        , string-conv
-                       , either
+                       , string-conversions
   default-language:    Haskell2010
 
 test-suite ArchPkgstatsScraper-test
@@ -60,6 +60,11 @@ test-suite ArchPkgstatsScraper-test
   main-is:             Spec.hs
   build-depends:       base
                      , ArchPkgstatsScraper
+                     , QuickCheck
+                     , hspec
+                     , string-conversions
+                     , aeson
+                     , transformers
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
