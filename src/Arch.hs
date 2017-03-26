@@ -16,7 +16,7 @@ import Lib
 import Text.XML.Cursor
 import Data.Text (Text, unpack)
 import GHC.Generics (Generic)
-import Data.Aeson (ToJSON, FromJSON, decode)
+import Data.Aeson (ToJSON, FromJSON, decode, eitherDecode)
 import qualified Data.ByteString.Lazy as Lazy
 import Text.XML (Document)
 import Data.List (find)
@@ -47,8 +47,10 @@ getPackages s = concat [
   unknown s
   ]
 
-getPackagesStats :: String -> IO (Maybe PackagesStats)
-getPackagesStats x = decode <$> Lazy.readFile x
+getPackagesStats :: String -> IO (Either String PackagesStats)
+getPackagesStats x = do
+  fc <- Lazy.readFile x
+  return $ eitherDecode fc
 
 searchPackageStats :: PackagesStats -> Text -> Maybe PackageStat
 searchPackageStats packageStats package = find ((== package) . fst) $ getPackages packageStats
