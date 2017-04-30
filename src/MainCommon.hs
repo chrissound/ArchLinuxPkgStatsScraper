@@ -16,7 +16,7 @@ getDocumentByArgs = do
         if sourceType == "--file"
         then getDocumentFile path
         else if sourceType == "--url"
-        then makeRequest "https://www.archlinux.de/?page=PackageStatistics"
+        then makeRequest path
         else error "First paramater must be --file or --url"
       _ -> error "Invalid parameters passed"
 
